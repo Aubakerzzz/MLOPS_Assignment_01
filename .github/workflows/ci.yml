@@ -18,26 +18,42 @@ jobs:
       # Build services
       # -----------------------
       - name: Build Docker Compose services
-        run: docker-compose build
+        run: docker compose build
 
       # -----------------------
       # Start services
       # -----------------------
       - name: Start services
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Wait for DB to initialize
-        run: sleep 25  # allow MySQL + init.sql to finish
+        run: |
+          echo "⏳ Waiting for MySQL + init.sql ..."
+          sleep 25
 
       # -----------------------
       # Run backend tests
       # -----------------------
       - name: Run backend tests
-        run: docker-compose run --rm backend pytest -v
+        run: docker compose run --rm backend pytest -v
 
       # -----------------------
       # Shut down services
       # -----------------------
       - name: Stop services
         if: always()
-        run: docker-compose down
+        run: docker compose down
+
+      # -----------------------
+      # Push images (optional, only on main)
+      # -----------------------
+      - name: Log in to DockerHub
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Push images
+        if: github.ref == 'refs/heads/main'
+        run: docker compose push
